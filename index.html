@@ -136,6 +136,37 @@ header .meta .live{color:var(--green)}
 .footer button:active{transform:scale(.98);opacity:.9}
 .footer .ts{font-size:10px;color:var(--muted);margin-top:6px}
 
+.push-bar{
+  display:flex;gap:8px;justify-content:center;align-items:center;
+  padding:10px 16px;margin:0 12px 12px;
+  background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);
+  border-radius:10px;
+}
+.push-bar button{
+  padding:8px 16px;border-radius:8px;border:none;
+  font-size:12px;font-weight:600;cursor:pointer;
+  transition:all .2s;
+}
+.push-btn-on{background:var(--green);color:#000}
+.push-btn-off{background:var(--red);color:#fff}
+.push-bar .status{font-size:11px;color:var(--muted)}
+
+.alert-toast{
+  position:fixed;top:60px;left:12px;right:12px;z-index:200;
+  background:linear-gradient(135deg,#1e293b,#0f172a);
+  border:1px solid var(--blue);border-radius:12px;
+  padding:14px 16px;
+  transform:translateY(-120%);transition:transform .3s ease;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+}
+.alert-toast.show{transform:translateY(0)}
+.alert-toast .alert-title{font-size:13px;font-weight:700;color:var(--text)}
+.alert-toast .alert-body{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4}
+.alert-toast .alert-close{
+  position:absolute;top:8px;right:12px;background:none;border:none;
+  color:var(--muted);font-size:16px;cursor:pointer;
+}
+
 @media(prefers-color-scheme:light){
   :root{
     --bg:#f8fafc;--card:#ffffff;--card2:#f1f5f9;
@@ -146,6 +177,12 @@ header .meta .live{color:var(--green)}
 </style>
 </head>
 <body>
+<div class="alert-toast" id="alertToast">
+  <button class="alert-close" onclick="hideAlert()">&times;</button>
+  <div class="alert-title" id="alertTitle"></div>
+  <div class="alert-body" id="alertBody"></div>
+</div>
+
 <div class="loader" id="loader">
   <div class="spinner"></div>
   <p id="loadStatus">Pobieram dane rynkowe...</p>
@@ -160,6 +197,11 @@ header .meta .live{color:var(--green)}
 </header>
 
 <div class="cards" id="cards"></div>
+
+<div class="push-bar" id="pushBar" style="display:none">
+  <span class="status" id="pushStatus">Alerty push wyłączone</span>
+  <button id="pushBtn" class="push-btn-on" onclick="togglePush()">Włącz alerty</button>
+</div>
 
 <div class="footer">
   <button onclick="refresh()">Odswież dane</button>
@@ -498,13 +540,166 @@ async function refresh() {
   loader.classList.add('hide');
 }
 
-// Service Worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
+// ============================================================
+// PUSH NOTIFICATIONS + IN-APP ALERTS
+// ============================================================
+
+const VAPID_PUBLIC_KEY = 'BEhZASbrBMr2L10GVjnc19w5TDULVWa9sXfKlPrt1GeVKHdcz5aCOjGLe0WOZIt0ScRKaK79azbnXJCDcFqVDtk';
+let swRegistration = null;
+let pushSubscription = null;
+let previousRecs = {}; // Track recommendation changes for in-app alerts
+
+// Alert sound (Web Audio API beep)
+function playAlertSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    osc.type = 'sine';
+    gain.gain.value = 0.3;
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+    osc.stop(ctx.currentTime + 0.5);
+  } catch(e) {}
 }
 
+function showAlert(title, body) {
+  document.getElementById('alertTitle').textContent = title;
+  document.getElementById('alertBody').textContent = body;
+  document.getElementById('alertToast').classList.add('show');
+  playAlertSound();
+  setTimeout(hideAlert, 8000);
+}
+
+function hideAlert() {
+  document.getElementById('alertToast').classList.remove('show');
+}
+
+// Check for recommendation changes (in-app alert)
+function checkForChanges(key, rec) {
+  const prev = previousRecs[key];
+  if (!prev) { previousRecs[key] = rec.action; return; }
+  if (prev !== rec.action) {
+    const dirChange = (prev.includes('KUP') && rec.action.includes('SPRZEDAJ')) ||
+                      (prev.includes('SPRZEDAJ') && rec.action.includes('KUP'));
+    if (dirChange) {
+      showAlert(
+        `${FUNDAMENTALS[key].name}: ODWROCENIE TRENDU`,
+        `${prev} → ${rec.action} — sprawdz pozycje!`
+      );
+    } else if (prev !== rec.action) {
+      showAlert(
+        `${FUNDAMENTALS[key].name}: zmiana`,
+        `${prev} → ${rec.action}`
+      );
+    }
+  }
+  previousRecs[key] = rec.action;
+}
+
+// Push subscription management
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function initPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    swRegistration = await navigator.serviceWorker.register('sw.js');
+    await navigator.serviceWorker.ready;
+    // Check existing subscription
+    pushSubscription = await swRegistration.pushManager.getSubscription();
+    updatePushUI();
+    document.getElementById('pushBar').style.display = 'flex';
+  } catch(e) {
+    console.error('Push init error:', e);
+  }
+}
+
+function updatePushUI() {
+  const btn = document.getElementById('pushBtn');
+  const status = document.getElementById('pushStatus');
+  if (pushSubscription) {
+    btn.textContent = 'Wyłącz alerty';
+    btn.className = 'push-btn-off';
+    status.textContent = 'Alerty push aktywne';
+    status.style.color = 'var(--green)';
+  } else {
+    btn.textContent = 'Włącz alerty';
+    btn.className = 'push-btn-on';
+    status.textContent = 'Alerty push wyłączone';
+    status.style.color = 'var(--muted)';
+  }
+}
+
+async function togglePush() {
+  if (pushSubscription) {
+    // Unsubscribe
+    try {
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: pushSubscription.toJSON(), action: 'unsubscribe' }),
+      });
+      await pushSubscription.unsubscribe();
+      pushSubscription = null;
+      updatePushUI();
+    } catch(e) { console.error('Unsubscribe error:', e); }
+  } else {
+    // Subscribe
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        showAlert('Brak uprawnień', 'Musisz zezwolić na powiadomienia w ustawieniach przeglądarki');
+        return;
+      }
+      pushSubscription = await swRegistration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: pushSubscription.toJSON() }),
+      });
+      updatePushUI();
+      showAlert('Alerty włączone', 'Dostaniesz powiadomienie push gdy trend się odwróci');
+    } catch(e) {
+      console.error('Subscribe error:', e);
+      showAlert('Błąd', e.message);
+    }
+  }
+}
+
+// Override renderCard to track changes
+const _origRenderCard = renderCard;
+renderCard = function(key, data) {
+  const f = FUNDAMENTALS[key];
+  const tech = computeTechnicals(data.closes);
+  if (tech) {
+    const fund = scoreFundamental(key, tech.current);
+    const techScore = scoreTechnical(tech);
+    const timeScore = scoreTiming(key);
+    const total = fund.score * 0.5 + techScore.score * 0.3 + timeScore.score * 0.2;
+    const rec = getRecommendation(total);
+    checkForChanges(key, rec);
+  }
+  return _origRenderCard(key, data);
+};
+
 // Init
+initPush();
 refresh();
+// Auto-refresh every 60s (detect changes in real-time when app is open)
+setInterval(refresh, 60000);
 </script>
 </body>
 </html>

@@ -2,8 +2,16 @@
   "buildCommand": "",
   "outputDirectory": ".",
   "framework": null,
+  "crons": [
+    {
+      "path": "/api/cron/check",
+      "schedule": "0 */4 * * *"
+    }
+  ],
   "rewrites": [
-    { "source": "/api/quote/:symbol", "destination": "/api/quote/:symbol" }
+    { "source": "/api/quote/:symbol", "destination": "/api/quote/:symbol" },
+    { "source": "/api/push/subscribe", "destination": "/api/push/subscribe" },
+    { "source": "/api/cron/check", "destination": "/api/cron/check" }
   ],
   "headers": [
     {
