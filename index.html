@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f172a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>+500 Advisor</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0e1a;--card:#111827;--card2:#1a2332;
+  --green:#22c55e;--red:#ef4444;--yellow:#eab308;--blue:#3b82f6;
+  --text:#e2e8f0;--muted:#94a3b8;--border:#1e293b;
+  --glass:rgba(255,255,255,0.05);
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-serif;
+  background:var(--bg);color:var(--text);
+  min-height:100vh;min-height:100dvh;
+  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
+  overflow-x:hidden;
+}
+.loader{
+  position:fixed;inset:0;background:var(--bg);z-index:100;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:opacity .3s;
+}
+.loader.hide{opacity:0;pointer-events:none}
+.loader .spinner{
+  width:40px;height:40px;border:3px solid var(--border);
+  border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader p{margin-top:12px;font-size:13px;color:var(--muted)}
+
+header{
+  padding:16px 20px 12px;
+  background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:10;
+  backdrop-filter:blur(10px);
+}
+header h1{font-size:18px;font-weight:700;letter-spacing:-.5px}
+header .meta{font-size:11px;color:var(--muted);margin-top:2px;display:flex;gap:12px}
+header .meta .live{color:var(--green)}
+
+.cards{padding:12px 12px 80px}
+.card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;margin-bottom:12px;overflow:hidden;
+  backdrop-filter:blur(8px);
+}
+.card-header{
+  padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:center;
+}
+.card-header .inst{font-size:15px;font-weight:700}
+.card-header .price{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+.card-header .change{font-size:12px;margin-left:8px}
+
+.recommendation{
+  padding:10px 16px;margin:0 12px;border-radius:10px;
+  text-align:center;font-weight:700;font-size:16px;
+  letter-spacing:.3px;
+}
+.rec-buy{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.rec-sell{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.rec-hold{background:rgba(234,179,8,.1);color:var(--yellow);border:1px solid rgba(234,179,8,.2)}
+
+.confidence{
+  text-align:center;padding:4px 16px 8px;font-size:11px;color:var(--muted)
+}
+
+.details{padding:8px 16px 14px}
+.detail-row{
+  display:flex;justify-content:space-between;padding:5px 0;
+  border-bottom:1px solid rgba(255,255,255,.03);font-size:12px;
+}
+.detail-row:last-child{border:none}
+.detail-row .label{color:var(--muted)}
+.detail-row .value{font-weight:600;font-variant-numeric:tabular-nums}
+.detail-row .value.up{color:var(--green)}
+.detail-row .value.down{color:var(--red)}
+.detail-row .value.neutral{color:var(--yellow)}
+
+.comment{
+  padding:8px 12px;margin:6px 12px 10px;
+  background:var(--glass);border-radius:8px;border-left:3px solid var(--blue);
+  font-size:11px;line-height:1.5;color:var(--muted);
+}
+.comment strong{color:var(--text)}
+
+.section-title{
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+  color:var(--muted);padding:16px 16px 6px;
+}
+
+.correlation-card{
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:14px;margin:12px;padding:14px 16px;
+}
+.correlation-card h3{font-size:13px;font-weight:700;margin-bottom:8px}
+.corr-row{
+  display:flex;justify-content:space-between;padding:4px 0;
+  font-size:12px;border-bottom:1px solid rgba(255,255,255,.03);
+}
+.corr-row:last-child{border:none}
+.corr-badge{
+  display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;
+}
+.corr-badge.weak{background:rgba(234,179,8,.15);color:var(--yellow)}
+.corr-badge.none{background:rgba(148,163,184,.1);color:var(--muted)}
+
+.params{
+  padding:8px 12px;margin:0 12px 10px;
+  background:rgba(59,130,246,.06);border-radius:8px;border:1px solid rgba(59,130,246,.15);
+}
+.params p{font-size:11px;color:var(--muted);line-height:1.6}
+.params strong{color:var(--text)}
+
+.footer{
+  position:fixed;bottom:0;left:0;right:0;
+  background:linear-gradient(0deg,var(--bg) 60%,transparent);
+  padding:20px 16px 8px;text-align:center;
+  padding-bottom:calc(8px + env(safe-area-inset-bottom));
+}
+.footer button{
+  width:100%;padding:14px;border-radius:12px;border:none;
+  background:linear-gradient(135deg,#3b82f6,#2563eb);
+  color:white;font-size:14px;font-weight:700;cursor:pointer;
+  letter-spacing:.3px;
+}
+.footer button:active{transform:scale(.98);opacity:.9}
+.footer .ts{font-size:10px;color:var(--muted);margin-top:6px}
+
+@media(prefers-color-scheme:light){
+  :root{
+    --bg:#f8fafc;--card:#ffffff;--card2:#f1f5f9;
+    --text:#0f172a;--muted:#64748b;--border:#e2e8f0;
+    --glass:rgba(0,0,0,0.03);
+  }
+}
+</style>
+</head>
+<body>
+<div class="loader" id="loader">
+  <div class="spinner"></div>
+  <p id="loadStatus">Pobieram dane rynkowe...</p>
+</div>
+
+<header>
+  <h1>+500 Advisor</h1>
+  <div class="meta">
+    <span id="datetime"></span>
+    <span class="live" id="liveStatus">Aktualizacja...</span>
+  </div>
+</header>
+
+<div class="cards" id="cards"></div>
+
+<div class="footer">
+  <button onclick="refresh()">Odswież dane</button>
+  <div class="ts" id="lastUpdate"></div>
+</div>
+
+<script>
+// ============================================================
+// KONFIGURACJA FUNDAMENTALNA
+// ============================================================
+const FUNDAMENTALS = {
+  WTI: {
+    name: 'Ropa WTI', symbol: 'CL=F', unit: 'USD/bbl',
+    floor: 50, fairLow: 58, fairMid: 65, fairHigh: 75, ceiling: 90, extreme: 110,
+  },
+  NG: {
+    name: 'Gaz ziemny', symbol: 'NG=F', unit: 'USD/MMBtu',
+    floor: 1.80, fairLow: 2.50, fairMid: 3.50, fairHigh: 4.50, ceiling: 6.00, extreme: 8.00,
+    seasonality: {1:1.25,2:1.20,3:1.05,4:0.85,5:0.80,6:0.80,7:0.85,8:0.90,9:0.95,10:1.00,11:1.10,12:1.20},
+  },
+  EUA: {
+    name: 'Emisje CO2 (EUA)', symbol: 'KRBN', unit: 'EUR/t (proxy)',
+    floor: 45, fairLow: 55, fairMid: 70, fairHigh: 85, ceiling: 100, extreme: 130,
+    krbnRatio: 2.27,
+  },
+};
+
+const STRATEGY = {
+  WTI: { greenH:[0,1,9,10,11,13,15,16,17,18,19,21], redH:[14,22,23], greenD:[0,1,3,4], redD:[2,6] },
+  NG:  { greenH:[0,7,8,9,10,12,14,15,16,18,19,20,22,23], redH:[13,21], greenD:[0,1,2,3,4], redD:[6] },
+  EUA: { greenH:[8,9,10,11,12,14,16,17], redH:[13,15], greenD:[1,2,4], redD:[] },
+};
+
+const DAYS = ['Niedziela','Poniedzialek','Wtorek','Sroda','Czwartek','Piatek','Sobota'];
+const MONTHS = ['','Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paz','Lis','Gru'];
+
+// ============================================================
+// POBIERANIE DANYCH Z YAHOO FINANCE (via query proxy)
+// ============================================================
+
+async function fetchQuote(symbol) {
+  // Lokalne API (server.py) — omija CORS, używa yfinance
+  const resp = await fetch(`/api/quote/${symbol}`);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${symbol}`);
+  const json = await resp.json();
+  if (json.error) throw new Error(json.error);
+  return { closes: json.closes, timestamps: json.timestamps };
+}
+
+// ============================================================
+// TECHNICZNE WSKAŹNIKI
+// ============================================================
+
+function computeTechnicals(closes) {
+  const n = closes.length;
+  if (n < 30) return null;
+  const current = closes[n-1];
+
+  // SMA
+  const sma = (arr, period) => {
+    const slice = arr.slice(-period);
+    return slice.reduce((a,b) => a+b, 0) / slice.length;
+  };
+  const sma20 = sma(closes, 20);
+  const sma50 = n >= 50 ? sma(closes, 50) : sma(closes, n);
+  const sma200 = n >= 200 ? sma(closes, 200) : sma(closes, n);
+
+  // RSI 14
+  let gains = 0, losses = 0;
+  for (let i = n-14; i < n; i++) {
+    const d = closes[i] - closes[i-1];
+    if (d > 0) gains += d; else losses -= d;
+  }
+  const rs = losses === 0 ? 100 : gains / losses;
+  const rsi = 100 - 100 / (1 + rs);
+
+  // Bollinger
+  const tail20 = closes.slice(-20);
+  const std20 = Math.sqrt(tail20.reduce((s,v) => s + (v-sma20)**2, 0) / 20);
+  const bbUpper = sma20 + 2*std20;
+  const bbLower = sma20 - 2*std20;
+
+  // MACD
+  const ema = (arr, span) => {
+    const k = 2/(span+1);
+    let e = arr[0];
+    for (let i = 1; i < arr.length; i++) e = arr[i]*k + e*(1-k);
+    return e;
+  };
+  const ema12 = ema(closes.slice(-26), 12);
+  const ema26 = ema(closes.slice(-26), 26);
+  const macd = ema12 - ema26;
+
+  // Changes
+  const pct1d = n >= 2 ? (current/closes[n-2]-1)*100 : 0;
+  const pct5d = n >= 6 ? (current/closes[n-6]-1)*100 : 0;
+  const pct20d = n >= 21 ? (current/closes[n-21]-1)*100 : 0;
+
+  return { current, sma20, sma50, sma200, rsi, bbUpper, bbLower, macd, pct1d, pct5d, pct20d };
+}
+
+// ============================================================
+// SCORING (identyczny z backtestem)
+// ============================================================
+
+function scoreFundamental(key, price) {
+  const f = FUNDAMENTALS[key];
+  let fairMid = f.fairMid;
+  if (key === 'NG') {
+    const m = new Date().getMonth() + 1;
+    fairMid *= (f.seasonality[m] || 1);
+  }
+  if (key === 'EUA' && f.krbnRatio) price *= f.krbnRatio;
+
+  const deviation = (price - fairMid) / fairMid * 100;
+  let score, zone;
+  if (price <= f.floor) { score = 80; zone = 'PODLOGA'; }
+  else if (price <= f.fairLow) { score = 50; zone = 'TANIO'; }
+  else if (price <= fairMid) { score = 20; zone = 'Fair value (dolna)'; }
+  else if (price <= f.fairHigh) { score = -10; zone = 'Fair value (gorna)'; }
+  else if (price <= f.ceiling) { score = -40; zone = 'DROGIE'; }
+  else if (price <= f.extreme) { score = -70; zone = 'B. DROGIE'; }
+  else { score = -90; zone = 'EKSTREMALNIE DROGIE'; }
+
+  const displayPrice = key === 'EUA' ? price : price;
+  return { score, zone, deviation, fairMid, displayPrice };
+}
+
+function scoreTechnical(tech) {
+  let s = 0;
+  const signals = [];
+
+  if (tech.current > tech.sma50 && tech.sma50 > tech.sma200) { s += 20; signals.push('Trend UP'); }
+  else if (tech.current < tech.sma50 && tech.sma50 < tech.sma200) { s -= 20; signals.push('Trend DOWN'); }
+  else if (tech.current > tech.sma20) { s += 10; signals.push('Krotki trend UP'); }
+  else { s -= 10; signals.push('Krotki trend DOWN'); }
+
+  if (tech.rsi > 70) { s -= 25; signals.push(`RSI ${tech.rsi.toFixed(0)} WYKUPIONY`); }
+  else if (tech.rsi > 60) { s -= 10; signals.push(`RSI ${tech.rsi.toFixed(0)} bliski wykup.`); }
+  else if (tech.rsi < 30) { s += 25; signals.push(`RSI ${tech.rsi.toFixed(0)} WYPRZEDANY`); }
+  else if (tech.rsi < 40) { s += 10; signals.push(`RSI ${tech.rsi.toFixed(0)} bliski wyprz.`); }
+  else { signals.push(`RSI ${tech.rsi.toFixed(0)}`); }
+
+  if (tech.current >= tech.bbUpper) { s -= 15; signals.push('Przy gornej BB'); }
+  else if (tech.current <= tech.bbLower) { s += 15; signals.push('Przy dolnej BB'); }
+
+  if (tech.pct5d > 5) { s -= 10; signals.push(`+${tech.pct5d.toFixed(1)}% 5d`); }
+  else if (tech.pct5d < -5) { s += 10; signals.push(`${tech.pct5d.toFixed(1)}% 5d`); }
+
+  return { score: s, signals };
+}
+
+function scoreTiming(key) {
+  const now = new Date();
+  const h = now.getHours(), d = now.getDay();
+  const dayIdx = d === 0 ? 6 : d - 1; // JS Sunday=0, we need Mon=0
+  const st = STRATEGY[key];
+  let s = 0; const signals = [];
+
+  if (st.greenH.includes(h)) { s += 15; signals.push(`${h}:00 ZIELONA`); }
+  else if (st.redH.includes(h)) { s -= 20; signals.push(`${h}:00 CZERWONA`); }
+
+  if (st.greenD.includes(dayIdx)) { s += 10; signals.push(`${DAYS[d]} zielony`); }
+  else if (st.redD.includes(dayIdx)) { s -= 15; signals.push(`${DAYS[d]} czerwony`); }
+
+  if (h === 13 || h === 14) { s -= 30; signals.push('13-14:30 BLOKADA US'); }
+  return { score: s, signals };
+}
+
+function getRecommendation(totalScore) {
+  if (totalScore > 25) return { action: 'KUP', cls: 'rec-buy', conf: Math.min(90, 50+Math.abs(totalScore)) };
+  if (totalScore > 10) return { action: 'KUP (ostroznie)', cls: 'rec-buy', conf: Math.min(75, 40+Math.abs(totalScore)) };
+  if (totalScore < -25) return { action: 'SPRZEDAJ', cls: 'rec-sell', conf: Math.min(90, 50+Math.abs(totalScore)) };
+  if (totalScore < -10) return { action: 'SPRZEDAJ (ostroznie)', cls: 'rec-sell', conf: Math.min(75, 40+Math.abs(totalScore)) };
+  return { action: 'WSTRZYMAJ SIE', cls: 'rec-hold', conf: Math.max(40, 60-Math.abs(totalScore)*2) };
+}
+
+// ============================================================
+// KOMENTARZE KONTEKSTOWE
+// ============================================================
+
+function getComment(key, fund, tech, timing) {
+  const lines = [];
+
+  // Fundamentalny
+  if (key === 'WTI') {
+    if (fund.displayPrice > 90) lines.push(`<strong>Ropa ${fund.displayPrice.toFixed(0)} USD = ${(fund.deviation).toFixed(0)}% powyzej fair value.</strong> Premia geopolityczna ~${Math.max(0,fund.displayPrice-75).toFixed(0)} USD (Iran/OPEC/Trump). Mean reversion: musi spasc do 58-75.`);
+    else if (fund.displayPrice < 58) lines.push(`<strong>Ropa ponizej kosztow produkcji.</strong> Historycznie to dno — producenci zaczynaja ciac wydobycie.`);
+  }
+  if (key === 'NG') {
+    const m = new Date().getMonth() + 1;
+    if (m >= 4 && m <= 6) lines.push(`Sezonowy dolek (kwiecien-czerwiec). Historycznie najnizsze ceny roku.`);
+    if (m >= 11 || m <= 2) lines.push(`Sezon grzewczy — ceny powinny byc podwyzszone.`);
+    if (fund.displayPrice < 2.5) lines.push(`<strong>Blisko strukturalnego floor (2.50).</strong> LNG eksport + breakeven Haynesville = podpora.`);
+  }
+  if (key === 'EUA') {
+    lines.push(`Presja polityczna: 10 panstw chce rewizji ETS. Kluczowe: kwiecien (MSR), lipiec (ETS Directive).`);
+    if (fund.displayPrice < 60) lines.push(`<strong>Ponizej 60 EUR — tanio.</strong> Lato 2026: koniec REPowerEU aukcji = spadek podazy 40%.`);
+  }
+
+  // Korelacje (z analizy)
+  lines.push('');
+  if (key === 'WTI') lines.push(`Korelacja z gazem: slaba (+0.09). Rozbieznosc ropa/gaz zdarza sie w 43% duzych ruchow.`);
+  if (key === 'NG') lines.push(`Korelacja z ropa: slaba (+0.09). Gaz jest bardziej sezonowy i pogodowy niz ropa.`);
+  if (key === 'EUA') lines.push(`Korelacja z energia: minimalna (+0.07 z ropa, +0.01 z gazem). EUA to glownie regulacje UE.`);
+
+  // Wiarygodnosc
+  lines.push('');
+  const confLevel = Math.abs(fund.score) > 50 ? 'WYSOKA' : Math.abs(fund.score) > 20 ? 'SREDNIA' : 'NISKA';
+  lines.push(`<strong>Wiarygodnosc rekomendacji: ${confLevel}.</strong> Fundament ${confLevel === 'WYSOKA' ? 'silny sygnal' : confLevel === 'SREDNIA' ? 'umiarkowany' : 'brak wyraznego sygnalu'}, tech ${Math.abs(tech.score) > 20 ? 'potwierdza' : 'neutralne'}.`);
+
+  return lines.filter(l => l).join('<br>');
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+
+function renderCard(key, data) {
+  const f = FUNDAMENTALS[key];
+  const tech = computeTechnicals(data.closes);
+  if (!tech) return '';
+
+  const fund = scoreFundamental(key, tech.current);
+  const techScore = scoreTechnical(tech);
+  const timeScore = scoreTiming(key);
+  const total = fund.score * 0.5 + techScore.score * 0.3 + timeScore.score * 0.2;
+  const rec = getRecommendation(total);
+  const comment = getComment(key, fund, techScore, timeScore);
+
+  const price = key === 'EUA' ? (tech.current * f.krbnRatio).toFixed(2) : tech.current.toFixed(2);
+  const chgCls = tech.pct1d >= 0 ? 'up' : 'down';
+  const chgSign = tech.pct1d >= 0 ? '+' : '';
+
+  return `
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="inst">${f.name}</div>
+      </div>
+      <div style="text-align:right">
+        <span class="price">${price} ${key === 'EUA' ? 'EUR' : 'USD'}</span>
+        <span class="change ${chgCls}">${chgSign}${tech.pct1d.toFixed(1)}%</span>
+      </div>
+    </div>
+
+    <div class="recommendation ${rec.cls}">${rec.action}</div>
+    <div class="confidence">${rec.conf.toFixed(0)}% pewnosci | Score: F${fund.score>0?'+':''}${fund.score} T${techScore.score>0?'+':''}${techScore.score} C${timeScore.score>0?'+':''}${timeScore.score} = ${total>0?'+':''}${total.toFixed(0)}</div>
+
+    <div class="details">
+      <div class="detail-row"><span class="label">Strefa</span><span class="value">${fund.zone}</span></div>
+      <div class="detail-row"><span class="label">Fair value</span><span class="value">${fund.fairMid.toFixed(2)}</span></div>
+      <div class="detail-row"><span class="label">Odchylenie</span><span class="value ${fund.deviation > 10 ? 'down' : fund.deviation < -10 ? 'up' : 'neutral'}">${fund.deviation > 0 ? '+' : ''}${fund.deviation.toFixed(1)}%</span></div>
+      <div class="detail-row"><span class="label">RSI</span><span class="value ${tech.rsi > 70 ? 'down' : tech.rsi < 30 ? 'up' : ''}">${tech.rsi.toFixed(0)}</span></div>
+      <div class="detail-row"><span class="label">SMA50/200</span><span class="value">${tech.sma50.toFixed(2)} / ${tech.sma200.toFixed(2)}</span></div>
+      <div class="detail-row"><span class="label">Zmiana 5d</span><span class="value ${tech.pct5d >= 0 ? 'up' : 'down'}">${tech.pct5d >= 0 ? '+' : ''}${tech.pct5d.toFixed(1)}%</span></div>
+      <div class="detail-row"><span class="label">Zmiana 20d</span><span class="value ${tech.pct20d >= 0 ? 'up' : 'down'}">${tech.pct20d >= 0 ? '+' : ''}${tech.pct20d.toFixed(1)}%</span></div>
+    </div>
+
+    <div class="comment">${comment}</div>
+
+    <div class="params">
+      <p><strong>Jesli otwierasz:</strong> Pozycja 10-20k | SL max -3 000 zl | Hold: ${key==='EUA'?'3-7 dni':key==='NG'?'8-24h / do 7 dni':'8-24h / max 3 dni'}</p>
+    </div>
+  </div>`;
+}
+
+function renderCorrelations() {
+  return `
+  <div class="section-title">Korelacje miedzy instrumentami</div>
+  <div class="correlation-card">
+    <h3>Dzienne zwroty (2021-2026)</h3>
+    <div class="corr-row"><span>Ropa ↔ Gaz</span><span class="corr-badge weak">+0.09 slaba</span></div>
+    <div class="corr-row"><span>Ropa ↔ EUA</span><span class="corr-badge weak">+0.07 slaba</span></div>
+    <div class="corr-row"><span>Gaz ↔ EUA</span><span class="corr-badge none">+0.01 brak</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5">
+      <strong>Kiedy dzialaja:</strong> W wysokiej zmiennosci korelacja ropa↔gaz rosnie do +0.12. W kryzysach energetycznych (2022) wszystko rosnie razem.<br>
+      <strong>Kiedy nie dzialaja:</strong> W 43% duzych ruchow ropa i gaz ida w przeciwne strony. EUA praktycznie niezalezne od surowcow — zdominowane regulacjami UE.<br>
+      <strong>Wniosek:</strong> Traktuj kazdy instrument osobno. Korelacje sa zbyt slabe na sygnaly tradingowe. Rozbieznosci ropa/gaz NIE sa wiarygodnym sygnalem odwrocenia.
+    </div>
+  </div>`;
+}
+
+// ============================================================
+// MAIN
+// ============================================================
+
+let marketData = {};
+
+async function refresh() {
+  const loader = document.getElementById('loader');
+  const loadStatus = document.getElementById('loadStatus');
+  loader.classList.remove('hide');
+
+  const symbols = ['CL=F', 'NG=F', 'KRBN'];
+  const keys = ['WTI', 'NG', 'EUA'];
+
+  for (let i = 0; i < symbols.length; i++) {
+    loadStatus.textContent = `Pobieram ${FUNDAMENTALS[keys[i]].name}... (${i+1}/3)`;
+    try {
+      marketData[keys[i]] = await fetchQuote(symbols[i]);
+    } catch(e) {
+      console.error(`Error fetching ${symbols[i]}:`, e);
+      loadStatus.textContent = `Blad: ${symbols[i]} — ${e.message}. Probuje ponownie...`;
+      // Retry once
+      try {
+        await new Promise(r => setTimeout(r, 2000));
+        marketData[keys[i]] = await fetchQuote(symbols[i]);
+      } catch(e2) {
+        console.error(`Retry failed for ${symbols[i]}`);
+      }
+    }
+  }
+
+  const now = new Date();
+  document.getElementById('datetime').textContent =
+    `${now.toLocaleDateString('pl-PL')} ${now.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'})} (${DAYS[now.getDay()]})`;
+  document.getElementById('liveStatus').textContent = 'Dane aktualne';
+  document.getElementById('lastUpdate').textContent = `Ostatnia aktualizacja: ${now.toLocaleTimeString('pl-PL')}`;
+
+  let html = '';
+  for (const key of keys) {
+    if (marketData[key]) {
+      html += renderCard(key, marketData[key]);
+    }
+  }
+  html += renderCorrelations();
+
+  // Disclaimer
+  html += `<div style="padding:16px;font-size:10px;color:var(--muted);text-align:center;line-height:1.5">
+    Wsparcie decyzyjne, nie gwarancja zysku. Model oparty na mean reversion + techniczne.
+    Fundament ma 50% wagi, tech 30%, timing 20%. Zawsze ustawiaj STOP-LOSS.
+  </div>`;
+
+  document.getElementById('cards').innerHTML = html;
+  loader.classList.add('hide');
+}
+
+// Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+
+// Init
+refresh();
+</script>
+</body>
+</html>

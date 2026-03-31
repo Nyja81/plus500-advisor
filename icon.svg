@@ -1,0 +1,5 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'>
+<rect width='512' height='512' rx='96' fill='#0f172a'/>
+<text x='256' y='280' text-anchor='middle' font-family='SF Pro Display,Helvetica,Arial' font-size='180' font-weight='800' fill='#3b82f6'>+5</text>
+<text x='256' y='400' text-anchor='middle' font-family='SF Pro Display,Helvetica,Arial' font-size='100' font-weight='700' fill='#22c55e'>00</text>
+</svg>
