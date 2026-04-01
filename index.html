@@ -48,7 +48,7 @@ header h1{font-size:18px;font-weight:700;letter-spacing:-.5px}
 header .meta{font-size:11px;color:var(--muted);margin-top:2px;display:flex;gap:12px}
 header .meta .live{color:var(--green)}
 
-.cards{padding:12px 12px 80px}
+.cards{padding:12px 12px 90px}
 .card{
   background:var(--card);border:1px solid var(--border);
   border-radius:14px;margin-bottom:12px;overflow:hidden;
@@ -123,8 +123,8 @@ header .meta .live{color:var(--green)}
 
 .footer{
   position:fixed;bottom:0;left:0;right:0;
-  background:linear-gradient(0deg,var(--bg) 60%,transparent);
-  padding:20px 16px 8px;text-align:center;
+  background:linear-gradient(0deg,var(--bg) 70%,transparent);
+  padding:24px 16px 8px;text-align:center;
   padding-bottom:calc(8px + env(safe-area-inset-bottom));
 }
 .footer button{
@@ -138,8 +138,8 @@ header .meta .live{color:var(--green)}
 
 .push-bar{
   display:flex;gap:8px;justify-content:center;align-items:center;
-  padding:10px 16px;margin:0 12px 12px;
-  background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);
+  padding:8px 16px;margin:0 12px;
+  background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.15);
   border-radius:10px;
 }
 .push-bar button{
@@ -156,10 +156,11 @@ header .meta .live{color:var(--green)}
   background:linear-gradient(135deg,#1e293b,#0f172a);
   border:1px solid var(--blue);border-radius:12px;
   padding:14px 16px;
-  transform:translateY(-120%);transition:transform .3s ease;
   box-shadow:0 8px 32px rgba(0,0,0,.5);
+  display:none;opacity:0;transform:translateY(-20px);
+  transition:opacity .3s ease,transform .3s ease;
 }
-.alert-toast.show{transform:translateY(0)}
+.alert-toast.show{display:block;opacity:1;transform:translateY(0)}
 .alert-toast .alert-title{font-size:13px;font-weight:700;color:var(--text)}
 .alert-toast .alert-body{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4}
 .alert-toast .alert-close{
@@ -196,12 +197,12 @@ header .meta .live{color:var(--green)}
   </div>
 </header>
 
-<div class="cards" id="cards"></div>
-
 <div class="push-bar" id="pushBar" style="display:none">
-  <span class="status" id="pushStatus">Alerty push wyłączone</span>
-  <button id="pushBtn" class="push-btn-on" onclick="togglePush()">Włącz alerty</button>
+  <span class="status" id="pushStatus">Alerty push wylaczone</span>
+  <button id="pushBtn" class="push-btn-on" onclick="togglePush()">Wlacz alerty</button>
 </div>
+
+<div class="cards" id="cards"></div>
 
 <div class="footer">
   <button onclick="refresh()">Odswież dane</button>
@@ -567,15 +568,19 @@ function playAlertSound() {
 }
 
 function showAlert(title, body) {
+  const toast = document.getElementById('alertToast');
   document.getElementById('alertTitle').textContent = title;
   document.getElementById('alertBody').textContent = body;
-  document.getElementById('alertToast').classList.add('show');
+  toast.style.display = 'block';
+  requestAnimationFrame(() => toast.classList.add('show'));
   playAlertSound();
   setTimeout(hideAlert, 8000);
 }
 
 function hideAlert() {
-  document.getElementById('alertToast').classList.remove('show');
+  const toast = document.getElementById('alertToast');
+  toast.classList.remove('show');
+  setTimeout(() => { if (!toast.classList.contains('show')) toast.style.display = 'none'; }, 300);
 }
 
 // Check for recommendation changes (in-app alert)
