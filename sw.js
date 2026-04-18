@@ -1,4 +1,4 @@
-const CACHE_NAME = 'plus500-v2';
+const CACHE_NAME = 'plus500-v3';
 const SHELL = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
