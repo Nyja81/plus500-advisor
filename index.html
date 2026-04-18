@@ -37,18 +37,16 @@ body{
 @keyframes spin{to{transform:rotate(360deg)}}
 .loader p{margin-top:12px;font-size:13px;color:var(--muted)}
 
-header{
-  padding:16px 20px 12px;
-  background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);
+.top-bar{
+  padding:10px 16px;display:flex;justify-content:space-between;align-items:center;
   border-bottom:1px solid var(--border);
-  position:sticky;top:0;z-index:10;
-  backdrop-filter:blur(10px);
+  background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);
 }
-header h1{font-size:18px;font-weight:700;letter-spacing:-.5px}
-header .meta{font-size:11px;color:var(--muted);margin-top:2px;display:flex;gap:12px}
-header .meta .live{color:var(--green)}
+.top-bar .title{font-size:15px;font-weight:700;letter-spacing:-.3px}
+.top-bar .meta{font-size:11px;color:var(--muted);display:flex;gap:10px;align-items:center}
+.top-bar .live{color:var(--green)}
 
-.cards{padding:12px 12px 90px}
+.cards{padding:12px 12px 140px}
 .card{
   background:var(--card);border:1px solid var(--border);
   border-radius:14px;margin-bottom:12px;overflow:hidden;
@@ -113,6 +111,7 @@ header .meta .live{color:var(--green)}
 }
 .corr-badge.weak{background:rgba(234,179,8,.15);color:var(--yellow)}
 .corr-badge.none{background:rgba(148,163,184,.1);color:var(--muted)}
+.corr-badge.moderate{background:rgba(59,130,246,.15);color:var(--blue)}
 
 .params{
   padding:8px 12px;margin:0 12px 10px;
@@ -122,34 +121,33 @@ header .meta .live{color:var(--green)}
 .params strong{color:var(--text)}
 
 .footer{
-  position:fixed;bottom:0;left:0;right:0;
-  background:linear-gradient(0deg,var(--bg) 70%,transparent);
-  padding:24px 16px 8px;text-align:center;
+  position:fixed;bottom:0;left:0;right:0;z-index:10;
+  background:linear-gradient(0deg,var(--bg) 80%,transparent);
+  padding:20px 16px 8px;
   padding-bottom:calc(8px + env(safe-area-inset-bottom));
 }
-.footer button{
-  width:100%;padding:14px;border-radius:12px;border:none;
-  background:linear-gradient(135deg,#3b82f6,#2563eb);
-  color:white;font-size:14px;font-weight:700;cursor:pointer;
-  letter-spacing:.3px;
-}
-.footer button:active{transform:scale(.98);opacity:.9}
-.footer .ts{font-size:10px;color:var(--muted);margin-top:6px}
-
-.push-bar{
+.footer .push-bar{
   display:flex;gap:8px;justify-content:center;align-items:center;
-  padding:8px 16px;margin:0 12px;
+  padding:8px 12px;margin-bottom:8px;
   background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.15);
   border-radius:10px;
 }
-.push-bar button{
+.footer .push-bar button{
   padding:8px 16px;border-radius:8px;border:none;
   font-size:12px;font-weight:600;cursor:pointer;
   transition:all .2s;
 }
 .push-btn-on{background:var(--green);color:#000}
 .push-btn-off{background:var(--red);color:#fff}
-.push-bar .status{font-size:11px;color:var(--muted)}
+.footer .push-bar .status{font-size:11px;color:var(--muted)}
+.footer .refresh-btn{
+  width:100%;padding:14px;border-radius:12px;border:none;
+  background:linear-gradient(135deg,#3b82f6,#2563eb);
+  color:white;font-size:14px;font-weight:700;cursor:pointer;
+  letter-spacing:.3px;
+}
+.footer .refresh-btn:active{transform:scale(.98);opacity:.9}
+.footer .ts{font-size:10px;color:var(--muted);margin-top:6px;text-align:center}
 
 .alert-toast{
   position:fixed;top:60px;left:12px;right:12px;z-index:200;
@@ -189,23 +187,22 @@ header .meta .live{color:var(--green)}
   <p id="loadStatus">Pobieram dane rynkowe...</p>
 </div>
 
-<header>
-  <h1>+500 Advisor</h1>
+<div class="top-bar">
+  <span class="title">+500 Advisor</span>
   <div class="meta">
     <span id="datetime"></span>
     <span class="live" id="liveStatus">Aktualizacja...</span>
   </div>
-</header>
-
-<div class="push-bar" id="pushBar" style="display:none">
-  <span class="status" id="pushStatus">Alerty push wylaczone</span>
-  <button id="pushBtn" class="push-btn-on" onclick="togglePush()">Wlacz alerty</button>
 </div>
 
 <div class="cards" id="cards"></div>
 
 <div class="footer">
-  <button onclick="refresh()">Odswież dane</button>
+  <div class="push-bar" id="pushBar" style="display:none">
+    <span class="status" id="pushStatus">Alerty push wylaczone</span>
+    <button id="pushBtn" class="push-btn-on" onclick="togglePush()">Wlacz alerty</button>
+  </div>
+  <button class="refresh-btn" onclick="refresh()">Odswież dane</button>
   <div class="ts" id="lastUpdate"></div>
 </div>
 
@@ -228,12 +225,18 @@ const FUNDAMENTALS = {
     floor: 45, fairLow: 55, fairMid: 70, fairHigh: 85, ceiling: 100, extreme: 130,
     krbnRatio: 2.27,
   },
+  ALU: {
+    name: 'Aluminium', symbol: 'ALI=F', unit: 'USD/t',
+    floor: 1800, fairLow: 2100, fairMid: 2400, fairHigh: 2700, ceiling: 3100, extreme: 3600,
+    lmeMultiplier: 1,
+  },
 };
 
 const STRATEGY = {
   WTI: { greenH:[0,1,9,10,11,13,15,16,17,18,19,21], redH:[14,22,23], greenD:[0,1,3,4], redD:[2,6] },
   NG:  { greenH:[0,7,8,9,10,12,14,15,16,18,19,20,22,23], redH:[13,21], greenD:[0,1,2,3,4], redD:[6] },
   EUA: { greenH:[8,9,10,11,12,14,16,17], redH:[13,15], greenD:[1,2,4], redD:[] },
+  ALU: { greenH:[8,9,10,11,12,15,16,17], redH:[14,22,23], greenD:[0,1,2,3,4], redD:[6], bias:'short' },
 };
 
 const DAYS = ['Niedziela','Poniedzialek','Wtorek','Sroda','Czwartek','Piatek','Sobota'];
@@ -244,7 +247,6 @@ const MONTHS = ['','Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paz','
 // ============================================================
 
 async function fetchQuote(symbol) {
-  // Lokalne API (server.py) — omija CORS, używa yfinance
   const resp = await fetch(`/api/quote/${symbol}`);
   if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${symbol}`);
   const json = await resp.json();
@@ -261,7 +263,6 @@ function computeTechnicals(closes) {
   if (n < 30) return null;
   const current = closes[n-1];
 
-  // SMA
   const sma = (arr, period) => {
     const slice = arr.slice(-period);
     return slice.reduce((a,b) => a+b, 0) / slice.length;
@@ -270,7 +271,6 @@ function computeTechnicals(closes) {
   const sma50 = n >= 50 ? sma(closes, 50) : sma(closes, n);
   const sma200 = n >= 200 ? sma(closes, 200) : sma(closes, n);
 
-  // RSI 14
   let gains = 0, losses = 0;
   for (let i = n-14; i < n; i++) {
     const d = closes[i] - closes[i-1];
@@ -279,13 +279,11 @@ function computeTechnicals(closes) {
   const rs = losses === 0 ? 100 : gains / losses;
   const rsi = 100 - 100 / (1 + rs);
 
-  // Bollinger
   const tail20 = closes.slice(-20);
   const std20 = Math.sqrt(tail20.reduce((s,v) => s + (v-sma20)**2, 0) / 20);
   const bbUpper = sma20 + 2*std20;
   const bbLower = sma20 - 2*std20;
 
-  // MACD
   const ema = (arr, span) => {
     const k = 2/(span+1);
     let e = arr[0];
@@ -296,7 +294,6 @@ function computeTechnicals(closes) {
   const ema26 = ema(closes.slice(-26), 26);
   const macd = ema12 - ema26;
 
-  // Changes
   const pct1d = n >= 2 ? (current/closes[n-2]-1)*100 : 0;
   const pct5d = n >= 6 ? (current/closes[n-6]-1)*100 : 0;
   const pct20d = n >= 21 ? (current/closes[n-21]-1)*100 : 0;
@@ -327,8 +324,7 @@ function scoreFundamental(key, price) {
   else if (price <= f.extreme) { score = -70; zone = 'B. DROGIE'; }
   else { score = -90; zone = 'EKSTREMALNIE DROGIE'; }
 
-  const displayPrice = key === 'EUA' ? price : price;
-  return { score, zone, deviation, fairMid, displayPrice };
+  return { score, zone, deviation, fairMid, displayPrice: price };
 }
 
 function scoreTechnical(tech) {
@@ -358,7 +354,7 @@ function scoreTechnical(tech) {
 function scoreTiming(key) {
   const now = new Date();
   const h = now.getHours(), d = now.getDay();
-  const dayIdx = d === 0 ? 6 : d - 1; // JS Sunday=0, we need Mon=0
+  const dayIdx = d === 0 ? 6 : d - 1;
   const st = STRATEGY[key];
   let s = 0; const signals = [];
 
@@ -372,7 +368,11 @@ function scoreTiming(key) {
   return { score: s, signals };
 }
 
-function getRecommendation(totalScore) {
+function getRecommendation(key, totalScore) {
+  const st = STRATEGY[key];
+  if (st && st.bias === 'short') {
+    totalScore -= 8;
+  }
   if (totalScore > 25) return { action: 'KUP', cls: 'rec-buy', conf: Math.min(90, 50+Math.abs(totalScore)) };
   if (totalScore > 10) return { action: 'KUP (ostroznie)', cls: 'rec-buy', conf: Math.min(75, 40+Math.abs(totalScore)) };
   if (totalScore < -25) return { action: 'SPRZEDAJ', cls: 'rec-sell', conf: Math.min(90, 50+Math.abs(totalScore)) };
@@ -384,10 +384,9 @@ function getRecommendation(totalScore) {
 // KOMENTARZE KONTEKSTOWE
 // ============================================================
 
-function getComment(key, fund, tech, timing) {
+function getComment(key, fund, tech, timing, techRaw) {
   const lines = [];
 
-  // Fundamentalny
   if (key === 'WTI') {
     if (fund.displayPrice > 90) lines.push(`<strong>Ropa ${fund.displayPrice.toFixed(0)} USD = ${(fund.deviation).toFixed(0)}% powyzej fair value.</strong> Premia geopolityczna ~${Math.max(0,fund.displayPrice-75).toFixed(0)} USD (Iran/OPEC/Trump). Mean reversion: musi spasc do 58-75.`);
     else if (fund.displayPrice < 58) lines.push(`<strong>Ropa ponizej kosztow produkcji.</strong> Historycznie to dno — producenci zaczynaja ciac wydobycie.`);
@@ -402,14 +401,33 @@ function getComment(key, fund, tech, timing) {
     lines.push(`Presja polityczna: 10 panstw chce rewizji ETS. Kluczowe: kwiecien (MSR), lipiec (ETS Directive).`);
     if (fund.displayPrice < 60) lines.push(`<strong>Ponizej 60 EUR — tanio.</strong> Lato 2026: koniec REPowerEU aukcji = spadek podazy 40%.`);
   }
+  if (key === 'ALU') {
+    if (fund.displayPrice > 2700) lines.push(`<strong>Aluminium ${fund.displayPrice.toFixed(0)} USD/t — powyzej fair value.</strong> Szukaj shorta przy oporach. Chiny moga zwolnic — nadprodukcja hutnicza.`);
+    else if (fund.displayPrice < 2100) lines.push(`<strong>Aluminium tanio (${fund.displayPrice.toFixed(0)} USD/t).</strong> Koszty energii podpieraja cene — huty zamykaja sie ponizej 2000.`);
+    else lines.push(`Aluminium w strefie fair value. Kluczowe: zapasy LME, popyt z Chin (60% globalnego), koszty energii (30-40% kosztow produkcji).`);
 
-  // Korelacje (z analizy)
+    if (techRaw) {
+      const inSmaRange = techRaw.current >= Math.min(techRaw.sma50, techRaw.sma200) * 0.97 &&
+                          techRaw.current <= Math.max(techRaw.sma50, techRaw.sma200) * 1.03;
+      if (inSmaRange) {
+        lines.push(`<strong>Cena w zakresie SMA 50/200 — trzymaj pozycje.</strong> Przetrzymaj jesli masz bledna strone.`);
+      } else if (techRaw.current > techRaw.sma50 && techRaw.current > techRaw.sma200) {
+        lines.push(`Cena powyzej SMA 50 i 200 — bias SHORT. Szukaj wejsc na oporach.`);
+      } else if (techRaw.current < techRaw.sma50 && techRaw.current < techRaw.sma200) {
+        lines.push(`Cena ponizej SMA 50 i 200 — ostroznosc z shortem. Rozważ cofniecie do SMA jako wejscie.`);
+      }
+    }
+
+    lines.push('');
+    lines.push(`Drivers: cla importowe US/EU na aluminium chinskie, zapasy LME, ceny pradu w Europie, popyt z sektora EV/budowlanego.`);
+  }
+
   lines.push('');
   if (key === 'WTI') lines.push(`Korelacja z gazem: slaba (+0.09). Rozbieznosc ropa/gaz zdarza sie w 43% duzych ruchow.`);
   if (key === 'NG') lines.push(`Korelacja z ropa: slaba (+0.09). Gaz jest bardziej sezonowy i pogodowy niz ropa.`);
   if (key === 'EUA') lines.push(`Korelacja z energia: minimalna (+0.07 z ropa, +0.01 z gazem). EUA to glownie regulacje UE.`);
+  if (key === 'ALU') lines.push(`Korelacja z miedzia: umiarkowana (~0.45). Z ropa: slaba (~0.15). Aluminium bardziej reaguje na Chiny niz na OPEC.`);
 
-  // Wiarygodnosc
   lines.push('');
   const confLevel = Math.abs(fund.score) > 50 ? 'WYSOKA' : Math.abs(fund.score) > 20 ? 'SREDNIA' : 'NISKA';
   lines.push(`<strong>Wiarygodnosc rekomendacji: ${confLevel}.</strong> Fundament ${confLevel === 'WYSOKA' ? 'silny sygnal' : confLevel === 'SREDNIA' ? 'umiarkowany' : 'brak wyraznego sygnalu'}, tech ${Math.abs(tech.score) > 20 ? 'potwierdza' : 'neutralne'}.`);
@@ -430,12 +448,16 @@ function renderCard(key, data) {
   const techScore = scoreTechnical(tech);
   const timeScore = scoreTiming(key);
   const total = fund.score * 0.5 + techScore.score * 0.3 + timeScore.score * 0.2;
-  const rec = getRecommendation(total);
-  const comment = getComment(key, fund, techScore, timeScore);
+  const rec = getRecommendation(key, total);
+  const comment = getComment(key, fund, techScore, timeScore, tech);
 
   const price = key === 'EUA' ? (tech.current * f.krbnRatio).toFixed(2) : tech.current.toFixed(2);
+  const unit = key === 'EUA' ? 'EUR' : 'USD';
   const chgCls = tech.pct1d >= 0 ? 'up' : 'down';
   const chgSign = tech.pct1d >= 0 ? '+' : '';
+
+  const holdTime = key === 'EUA' ? '3-7 dni' : key === 'NG' ? '8-24h / do 7 dni' : key === 'ALU' ? '4-48h / do 5 dni' : '8-24h / max 3 dni';
+  const biasNote = key === 'ALU' ? ' | Bias: SHORT' : '';
 
   return `
   <div class="card">
@@ -444,7 +466,7 @@ function renderCard(key, data) {
         <div class="inst">${f.name}</div>
       </div>
       <div style="text-align:right">
-        <span class="price">${price} ${key === 'EUA' ? 'EUR' : 'USD'}</span>
+        <span class="price">${price} ${unit}</span>
         <span class="change ${chgCls}">${chgSign}${tech.pct1d.toFixed(1)}%</span>
       </div>
     </div>
@@ -465,7 +487,7 @@ function renderCard(key, data) {
     <div class="comment">${comment}</div>
 
     <div class="params">
-      <p><strong>Jesli otwierasz:</strong> Pozycja 10-20k | SL max -3 000 zl | Hold: ${key==='EUA'?'3-7 dni':key==='NG'?'8-24h / do 7 dni':'8-24h / max 3 dni'}</p>
+      <p><strong>Jesli otwierasz:</strong> Pozycja 10-20k | SL max -3 000 zl | Hold: ${holdTime}${biasNote}</p>
     </div>
   </div>`;
 }
@@ -478,10 +500,13 @@ function renderCorrelations() {
     <div class="corr-row"><span>Ropa ↔ Gaz</span><span class="corr-badge weak">+0.09 slaba</span></div>
     <div class="corr-row"><span>Ropa ↔ EUA</span><span class="corr-badge weak">+0.07 slaba</span></div>
     <div class="corr-row"><span>Gaz ↔ EUA</span><span class="corr-badge none">+0.01 brak</span></div>
+    <div class="corr-row"><span>Aluminium ↔ Miedz</span><span class="corr-badge moderate">+0.45 umiark.</span></div>
+    <div class="corr-row"><span>Aluminium ↔ Ropa</span><span class="corr-badge weak">+0.15 slaba</span></div>
+    <div class="corr-row"><span>Aluminium ↔ EUA</span><span class="corr-badge weak">+0.12 slaba</span></div>
     <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5">
-      <strong>Kiedy dzialaja:</strong> W wysokiej zmiennosci korelacja ropa↔gaz rosnie do +0.12. W kryzysach energetycznych (2022) wszystko rosnie razem.<br>
-      <strong>Kiedy nie dzialaja:</strong> W 43% duzych ruchow ropa i gaz ida w przeciwne strony. EUA praktycznie niezalezne od surowcow — zdominowane regulacjami UE.<br>
-      <strong>Wniosek:</strong> Traktuj kazdy instrument osobno. Korelacje sa zbyt slabe na sygnaly tradingowe. Rozbieznosci ropa/gaz NIE sa wiarygodnym sygnalem odwrocenia.
+      <strong>Kiedy dzialaja:</strong> W wysokiej zmiennosci korelacja ropa↔gaz rosnie do +0.12. Aluminium silnie koreluje z miedzia w trendach chinskiego popytu.<br>
+      <strong>Kiedy nie dzialaja:</strong> W 43% duzych ruchow ropa i gaz ida w przeciwne strony. EUA praktycznie niezalezne. Aluminium moze odchylac sie od miedzi przy szokach energetycznych (huty).<br>
+      <strong>Wniosek:</strong> Traktuj kazdy instrument osobno. Aluminium bardziej reaguje na Chiny i energie niz na rynki ropy.
     </div>
   </div>`;
 }
@@ -497,17 +522,16 @@ async function refresh() {
   const loadStatus = document.getElementById('loadStatus');
   loader.classList.remove('hide');
 
-  const symbols = ['CL=F', 'NG=F', 'KRBN'];
-  const keys = ['WTI', 'NG', 'EUA'];
+  const symbols = ['CL=F', 'NG=F', 'KRBN', 'ALI=F'];
+  const keys = ['WTI', 'NG', 'EUA', 'ALU'];
 
   for (let i = 0; i < symbols.length; i++) {
-    loadStatus.textContent = `Pobieram ${FUNDAMENTALS[keys[i]].name}... (${i+1}/3)`;
+    loadStatus.textContent = `Pobieram ${FUNDAMENTALS[keys[i]].name}... (${i+1}/${symbols.length})`;
     try {
       marketData[keys[i]] = await fetchQuote(symbols[i]);
     } catch(e) {
       console.error(`Error fetching ${symbols[i]}:`, e);
       loadStatus.textContent = `Blad: ${symbols[i]} — ${e.message}. Probuje ponownie...`;
-      // Retry once
       try {
         await new Promise(r => setTimeout(r, 2000));
         marketData[keys[i]] = await fetchQuote(symbols[i]);
@@ -531,7 +555,6 @@ async function refresh() {
   }
   html += renderCorrelations();
 
-  // Disclaimer
   html += `<div style="padding:16px;font-size:10px;color:var(--muted);text-align:center;line-height:1.5">
     Wsparcie decyzyjne, nie gwarancja zysku. Model oparty na mean reversion + techniczne.
     Fundament ma 50% wagi, tech 30%, timing 20%. Zawsze ustawiaj STOP-LOSS.
@@ -548,9 +571,8 @@ async function refresh() {
 const VAPID_PUBLIC_KEY = 'BEhZASbrBMr2L10GVjnc19w5TDULVWa9sXfKlPrt1GeVKHdcz5aCOjGLe0WOZIt0ScRKaK79azbnXJCDcFqVDtk';
 let swRegistration = null;
 let pushSubscription = null;
-let previousRecs = {}; // Track recommendation changes for in-app alerts
+let previousRecs = {};
 
-// Alert sound (Web Audio API beep)
 function playAlertSound() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -583,7 +605,6 @@ function hideAlert() {
   setTimeout(() => { if (!toast.classList.contains('show')) toast.style.display = 'none'; }, 300);
 }
 
-// Check for recommendation changes (in-app alert)
 function checkForChanges(key, rec) {
   const prev = previousRecs[key];
   if (!prev) { previousRecs[key] = rec.action; return; }
@@ -605,7 +626,6 @@ function checkForChanges(key, rec) {
   previousRecs[key] = rec.action;
 }
 
-// Push subscription management
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -620,7 +640,6 @@ async function initPush() {
   try {
     swRegistration = await navigator.serviceWorker.register('sw.js');
     await navigator.serviceWorker.ready;
-    // Check existing subscription
     pushSubscription = await swRegistration.pushManager.getSubscription();
     updatePushUI();
     document.getElementById('pushBar').style.display = 'flex';
@@ -647,7 +666,6 @@ function updatePushUI() {
 
 async function togglePush() {
   if (pushSubscription) {
-    // Unsubscribe
     try {
       await fetch('/api/push/subscribe', {
         method: 'POST',
@@ -659,7 +677,6 @@ async function togglePush() {
       updatePushUI();
     } catch(e) { console.error('Unsubscribe error:', e); }
   } else {
-    // Subscribe
     try {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
@@ -684,7 +701,6 @@ async function togglePush() {
   }
 }
 
-// Override renderCard to track changes
 const _origRenderCard = renderCard;
 renderCard = function(key, data) {
   const f = FUNDAMENTALS[key];
@@ -694,16 +710,14 @@ renderCard = function(key, data) {
     const techScore = scoreTechnical(tech);
     const timeScore = scoreTiming(key);
     const total = fund.score * 0.5 + techScore.score * 0.3 + timeScore.score * 0.2;
-    const rec = getRecommendation(total);
+    const rec = getRecommendation(key, total);
     checkForChanges(key, rec);
   }
   return _origRenderCard(key, data);
 };
 
-// Init
 initPush();
 refresh();
-// Auto-refresh every 60s (detect changes in real-time when app is open)
 setInterval(refresh, 60000);
 </script>
 </body>

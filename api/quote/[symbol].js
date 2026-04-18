@@ -1,7 +1,7 @@
 export default async function handler(req, res) {
   const { symbol } = req.query;
 
-  if (!symbol || !['CL=F', 'NG=F', 'KRBN'].includes(symbol)) {
+  if (!symbol || !['CL=F', 'NG=F', 'KRBN', 'ALI=F'].includes(symbol)) {
     return res.status(400).json({ error: 'Invalid symbol' });
   }
 
